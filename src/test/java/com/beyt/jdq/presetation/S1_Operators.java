@@ -11,8 +11,6 @@ import com.beyt.jdq.testenv.entity.school.Course;
 import com.beyt.jdq.testenv.repository.CourseRepository;
 import com.beyt.jdq.testenv.repository.DepartmentRepository;
 import com.beyt.jdq.util.PresentationUtil;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +26,6 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Slf4j
 @SpringBootTest(classes = TestApplication.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
@@ -121,7 +118,6 @@ public class S1_Operators extends BaseTestInstance {
         assertEquals(List.of(course2), courseList);
     }
 
-    @SneakyThrows
     @Test
     public void equalDate() {
         var criteriaList = CriteriaList.of(Criteria.of("startDate", CriteriaOperator.EQUAL, "2015-06-18"));
@@ -131,7 +127,6 @@ public class S1_Operators extends BaseTestInstance {
         assertEquals(List.of(), courseList);
     }
 
-    @SneakyThrows
     @Test
     public void equalInteger() {
         var criteriaList = CriteriaList.of(Criteria.of("maxStudentCount", CriteriaOperator.EQUAL, 54));
@@ -188,7 +183,7 @@ public class S1_Operators extends BaseTestInstance {
 
     @Test
     public void lessThan() {
-        var criteriaList = CriteriaList.of(Criteria.of(Course.Fields.maxStudentCount, CriteriaOperator.LESS_THAN, 40));
+        var criteriaList = CriteriaList.of(Criteria.of("maxStudentCount", CriteriaOperator.LESS_THAN, 40));
         PresentationUtil.prettyPrint(criteriaList);
         List<Course> courseList = courseRepository.findAll(criteriaList);
         PresentationUtil.prettyPrint(courseList);
@@ -197,7 +192,7 @@ public class S1_Operators extends BaseTestInstance {
 
     @Test
     public void lessThanOrEqual() {
-        var criteriaList = CriteriaList.of(Criteria.of(Course.Fields.maxStudentCount, CriteriaOperator.LESS_THAN_OR_EQUAL, 40));
+        var criteriaList = CriteriaList.of(Criteria.of("maxStudentCount", CriteriaOperator.LESS_THAN_OR_EQUAL, 40));
         PresentationUtil.prettyPrint(criteriaList);
         List<Course> courseList = courseRepository.findAll(criteriaList);
         PresentationUtil.prettyPrint(courseList); // 6,7,8,10

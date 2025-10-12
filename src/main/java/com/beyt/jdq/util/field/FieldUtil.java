@@ -1,7 +1,6 @@
 package com.beyt.jdq.util.field;
 
 import com.beyt.jdq.util.field.helper.*;
-import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,7 +14,6 @@ import java.sql.Timestamp;
 /**
  * Created by tdilber at 11/17/2020
  */
-@Slf4j
 public final class FieldUtil {
     private FieldUtil() {
 

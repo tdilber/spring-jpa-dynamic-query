@@ -11,7 +11,6 @@ import com.beyt.jdq.exception.DynamicQueryIllegalArgumentException;
 import com.beyt.jdq.query.rule.specification.*;
 import com.beyt.jdq.repository.JpaDynamicQueryRepositoryImpl;
 import com.beyt.jdq.util.field.FieldUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.metamodel.model.domain.internal.SingularAttributeImpl;
@@ -42,7 +41,6 @@ import java.util.stream.Stream;
 /**
  * Created by tdilber at 28-Aug-19
  */
-@Slf4j
 public class DynamicQueryManager {
 
     public final static Map<CriteriaOperator, ISpecificationFilterRule> specificationRuleMap = new HashMap<>();
