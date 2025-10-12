@@ -1,7 +1,7 @@
 package com.beyt.jdq.query;
 
 import com.beyt.jdq.deserializer.IDeserializer;
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 /**
  * Context object that holds dependencies required for dynamic query execution
