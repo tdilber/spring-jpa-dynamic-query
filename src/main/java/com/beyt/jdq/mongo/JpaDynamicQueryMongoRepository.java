@@ -129,4 +129,11 @@ public interface JpaDynamicQueryMongoRepository<T, ID> extends MongoRepository<T
             processor.accept(content);
         }
     }
+
+    /**
+     * Create a query builder for fluent query construction
+     */
+    default MongoQueryBuilder<T, ID> queryBuilder() {
+        return new MongoQueryBuilder<>(this);
+    }
 }

@@ -174,9 +174,9 @@ public class MongoSearchQueryTemplate {
         int pageNumber = searchQuery.getPageNumber() != null ? searchQuery.getPageNumber() : 0;
         int pageSize = searchQuery.getPageSize() != null ? searchQuery.getPageSize() : 20;
         
-        return searchQuery.getOrderBy().stream().findFirst()
-                .map(o -> PageRequest.of(pageNumber, pageSize, o.getSecond().getDirection(), o.getFirst()))
-                .orElse(PageRequest.of(pageNumber, pageSize));
+        // Don't include sort in Pageable - we handle sort separately in aggregation pipeline
+        // because we need to convert field names to MongoDB field paths
+        return PageRequest.of(pageNumber, pageSize);
     }
 
     /**
@@ -683,42 +683,39 @@ public class MongoSearchQueryTemplate {
             operations.add(Aggregation.replaceRoot("doc"));
         }
         
-        // Add projection if select fields are specified
-        if (CollectionUtils.isNotEmpty(dynamicQuery.getSelect())) {
-            operations.add(buildProjectionStage(entityClass, dynamicQuery));
-        }
-        
         if (isCount) {
             // For count, just return the count
             operations.add(Aggregation.count().as("count"));
         } else {
-            // Add order by if specified
+            // Add order by BEFORE projection (because projection changes field names)
             if (CollectionUtils.isNotEmpty(dynamicQuery.getOrderBy())) {
                 List<org.springframework.data.domain.Sort.Order> orders = new ArrayList<>();
                 for (Pair<String, com.beyt.jdq.dto.enums.Order> orderPair : dynamicQuery.getOrderBy()) {
                     String fieldPath = orderPair.getFirst();
-                    // Convert field path to MongoDB field path
-                    String mongoField = toMongoFieldPath(entityClass, fieldPath);
+                    // Use MongoDB field path (before projection)
+                    String orderByField = toMongoFieldPath(entityClass, fieldPath);
+                    
                     orders.add(new org.springframework.data.domain.Sort.Order(
                         orderPair.getSecond().getDirection(),
-                        mongoField
+                        orderByField
                     ));
                 }
                 operations.add(sort(org.springframework.data.domain.Sort.by(orders)));
             }
             
+            // Add projection if select fields are specified (AFTER order by)
+            if (CollectionUtils.isNotEmpty(dynamicQuery.getSelect())) {
+                operations.add(buildProjectionStage(entityClass, dynamicQuery));
+            }
+            
             // Add pagination if provided
             if (pageable != null) {
-                if (pageable.getSort().isSorted()) {
-                    operations.add(sort(pageable.getSort()));
-                }
+                // Note: Sort is already handled above, don't add from pageable
                 operations.add(skip((long) pageable.getPageNumber() * pageable.getPageSize()));
                 operations.add(limit(pageable.getPageSize()));
             } else if (dynamicQuery.getPageSize() != null && dynamicQuery.getPageNumber() != null) {
                 Pageable pageableFromQuery = getPageable(dynamicQuery);
-                if (pageableFromQuery.getSort().isSorted()) {
-                    operations.add(sort(pageableFromQuery.getSort()));
-                }
+                // Note: Sort is already handled above, don't add from pageable
                 operations.add(skip((long) pageableFromQuery.getPageNumber() * pageableFromQuery.getPageSize()));
                 operations.add(limit(pageableFromQuery.getPageSize()));
             }

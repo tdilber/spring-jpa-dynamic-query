@@ -13,7 +13,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
 @EnableJpaDynamicQueryMongo
-@ComponentScan(basePackages = {"com.beyt.jdq.mongo", "com.beyt.jdq.deserializer"})
+@ComponentScan(basePackages = {"com.beyt.jdq.mongo", "com.beyt.jdq.deserializer", "com.beyt.jdq.resolver", "com.beyt.jdq.config"})
 public class MongoTestApplication {
 
     public static void main(String[] args) {
