@@ -55,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("mongotest")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Disabled("Requires deep nested $lookup support in MongoSearchQueryTemplate")
 public class S6_Advanced_Join extends BaseMongoJoinTestInstance {
 
     /**

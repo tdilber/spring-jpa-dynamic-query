@@ -227,6 +227,29 @@ public abstract class BaseMongoJoinTestInstance {
         studentRepository.save(student9);
         studentRepository.save(student10);
         studentRepository.save(student11);
+        
+        // Update departments with their students (bidirectional relationship for MongoDB)
+        department1.setStudents(List.of(student1));
+        department2.setStudents(List.of(student2));
+        department3.setStudents(List.of(student3));
+        department4.setStudents(List.of(student4));
+        department5.setStudents(List.of(student5));
+        department6.setStudents(List.of(student6));
+        department7.setStudents(List.of(student7));
+        department8.setStudents(List.of(student8));
+        department9.setStudents(List.of(student9));
+        department10.setStudents(List.of(student10));
+        
+        departmentRepository.save(department1);
+        departmentRepository.save(department2);
+        departmentRepository.save(department3);
+        departmentRepository.save(department4);
+        departmentRepository.save(department5);
+        departmentRepository.save(department6);
+        departmentRepository.save(department7);
+        departmentRepository.save(department8);
+        departmentRepository.save(department9);
+        departmentRepository.save(department10);
 
         // Save authorizations
         authorizationRepository.save(authorization1);
@@ -268,6 +291,32 @@ public abstract class BaseMongoJoinTestInstance {
         adminUser4 = new AdminUser(4L, "admin4", "password4", List.of(role4));
         adminUser5 = new AdminUser(5L, "admin5", "password5", List.of(role5));
 
+        adminUserRepository.save(adminUser1);
+        adminUserRepository.save(adminUser2);
+        adminUserRepository.save(adminUser3);
+        adminUserRepository.save(adminUser4);
+        adminUserRepository.save(adminUser5);
+        
+        // Update roles with their role authorizations (bidirectional relationship for MongoDB)
+        role1.setRoleAuthorizations(List.of(roleAuthorization1));
+        role2.setRoleAuthorizations(List.of(roleAuthorization2));
+        role3.setRoleAuthorizations(List.of(roleAuthorization3));
+        role4.setRoleAuthorizations(List.of(roleAuthorization4));
+        role5.setRoleAuthorizations(List.of(roleAuthorization5));
+        
+        roleRepository.save(role1);
+        roleRepository.save(role2);
+        roleRepository.save(role3);
+        roleRepository.save(role4);
+        roleRepository.save(role5);
+        
+        // Update admin users with their roles (bidirectional relationship for MongoDB)
+        adminUser1.setRoles(List.of(role1));
+        adminUser2.setRoles(List.of(role2));
+        adminUser3.setRoles(List.of(role3));
+        adminUser4.setRoles(List.of(role4));
+        adminUser5.setRoles(List.of(role5));
+        
         adminUserRepository.save(adminUser1);
         adminUserRepository.save(adminUser2);
         adminUserRepository.save(adminUser3);

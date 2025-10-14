@@ -43,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("mongotest")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Disabled("Requires $lookup aggregation support in MongoSearchQueryTemplate for joins")
 public class S5_Join extends BaseMongoJoinTestInstance {
 
     /**
