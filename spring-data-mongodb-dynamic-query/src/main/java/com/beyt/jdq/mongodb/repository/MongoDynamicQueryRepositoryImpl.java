@@ -3,6 +3,7 @@ package com.beyt.jdq.mongodb.repository;
 import com.beyt.jdq.core.model.Criteria;
 import com.beyt.jdq.core.model.DynamicQuery;
 import com.beyt.jdq.core.util.ListConsumer;
+import com.beyt.jdq.mongodb.builder.MongoQueryBuilder;
 import com.beyt.jdq.mongodb.core.MongoSearchQueryTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,12 +35,10 @@ public class MongoDynamicQueryRepositoryImpl<T, ID extends Serializable>
         this.entityClass = metadata.getJavaType();
     }
 
-    @Override
     public MongoSearchQueryTemplate getMongoSearchQueryTemplate() {
         return mongoSearchQueryTemplate;
     }
 
-    @Override
     public Class<T> getEntityClass() {
         return entityClass;
     }
@@ -55,8 +54,18 @@ public class MongoDynamicQueryRepositoryImpl<T, ID extends Serializable>
     }
 
     @Override
+    public <R> List<R> findAll(DynamicQuery dynamicQuery, Class<R> resultClass) {
+        return mongoSearchQueryTemplate.findAll(getEntityClass(), dynamicQuery, resultClass);
+    }
+
+    @Override
     public Page<T> findAllAsPage(DynamicQuery dynamicQuery) {
         return mongoSearchQueryTemplate.findAllAsPage(entityClass, dynamicQuery);
+    }
+
+    @Override
+    public <R> Page<R> findAllAsPage(DynamicQuery dynamicQuery, Class<R> resultClass) {
+        return mongoSearchQueryTemplate.findAllAsPage(getEntityClass(), dynamicQuery, resultClass);
     }
 
     @Override
@@ -105,6 +114,11 @@ public class MongoDynamicQueryRepositoryImpl<T, ID extends Serializable>
             List<T> content = mongoSearchQueryTemplate.findAll(entityClass, dynamicQuery);
             processor.accept(content);
         }
+    }
+
+    @Override
+    public MongoQueryBuilder<T, ID> queryBuilder() {
+        return new MongoQueryBuilder<>(this);
     }
 }
 
