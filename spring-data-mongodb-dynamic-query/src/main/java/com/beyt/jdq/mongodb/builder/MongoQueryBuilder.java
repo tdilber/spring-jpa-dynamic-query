@@ -2,6 +2,7 @@ package com.beyt.jdq.mongodb.builder;
 
 import com.beyt.jdq.core.model.Criteria;
 import com.beyt.jdq.core.model.DynamicQuery;
+import com.beyt.jdq.core.model.builder.BaseQueryBuilder;
 import com.beyt.jdq.core.model.builder.QuerySimplifier;
 import com.beyt.jdq.core.model.builder.interfaces.*;
 import com.beyt.jdq.mongodb.repository.MongoDynamicQueryRepository;
@@ -16,7 +17,7 @@ import java.util.stream.Collectors;
  * MongoDB version of QueryBuilder.
  * Provides fluent API for building dynamic queries for MongoDB repositories.
  */
-public class MongoQueryBuilder<T, ID> implements DistinctWhereOrderByPage<T, ID>, WhereOrderByPage<T, ID>, OrderByPage<T, ID>, PageableResult<T, ID>, Result<T, ID> {
+public class MongoQueryBuilder<T, ID> extends BaseQueryBuilder<T, ID> implements DistinctWhereOrderByPage<T, ID>, WhereOrderByPage<T, ID>, OrderByPage<T, ID>, PageableResult<T, ID>, Result<T, ID> {
     protected final MongoDynamicQueryRepository<T, ID> mongoRepository;
     protected final DynamicQuery dynamicQuery;
 

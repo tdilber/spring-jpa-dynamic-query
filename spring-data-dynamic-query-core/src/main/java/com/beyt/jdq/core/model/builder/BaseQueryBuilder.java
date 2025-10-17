@@ -1,11 +1,8 @@
-package com.beyt.jdq.jpa.query.builder;
+package com.beyt.jdq.core.model.builder;
 
 import com.beyt.jdq.core.model.Criteria;
 import com.beyt.jdq.core.model.DynamicQuery;
-import com.beyt.jdq.core.model.builder.BaseQueryBuilder;
-import com.beyt.jdq.core.model.builder.QuerySimplifier;
 import com.beyt.jdq.core.model.builder.interfaces.*;
-import com.beyt.jdq.jpa.repository.JpaDynamicQueryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.util.Pair;
 
@@ -13,12 +10,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class QueryBuilder<T, ID> extends BaseQueryBuilder<T, ID> implements DistinctWhereOrderByPage<T, ID>, WhereOrderByPage<T, ID>, OrderByPage<T, ID>, PageableResult<T, ID>, Result<T, ID> {
-    protected final JpaDynamicQueryRepository<T, ID> jpaDynamicQueryRepository;
+public abstract class BaseQueryBuilder<T, ID> implements DistinctWhereOrderByPage<T, ID>, WhereOrderByPage<T, ID>, OrderByPage<T, ID>, PageableResult<T, ID>, Result<T, ID> {
     protected final DynamicQuery dynamicQuery;
 
-    public QueryBuilder(JpaDynamicQueryRepository<T, ID> jpaDynamicQueryRepository) {
-        this.jpaDynamicQueryRepository = jpaDynamicQueryRepository;
+    public BaseQueryBuilder() {
+
         dynamicQuery = new DynamicQuery();
     }
 
@@ -50,19 +46,11 @@ public class QueryBuilder<T, ID> extends BaseQueryBuilder<T, ID> implements Dist
         return this;
     }
 
-    public List<T> getResult() {
-        return jpaDynamicQueryRepository.findAll(dynamicQuery);
-    }
+    public abstract List<T> getResult();
 
-    public <ResultValue> List<ResultValue> getResult(Class<ResultValue> resultValueClass) {
-        return jpaDynamicQueryRepository.findAll(dynamicQuery, resultValueClass);
-    }
+    public abstract <ResultValue> List<ResultValue> getResult(Class<ResultValue> resultValueClass);
 
-    public Page<T> getResultAsPage() {
-        return jpaDynamicQueryRepository.findAllAsPage(dynamicQuery);
-    }
+    public abstract Page<T> getResultAsPage();
 
-    public <ResultValue> Page<ResultValue> getResultAsPage(Class<ResultValue> resultValueClass) {
-        return jpaDynamicQueryRepository.findAllAsPage(dynamicQuery, resultValueClass);
-    }
+    public abstract <ResultValue> Page<ResultValue> getResultAsPage(Class<ResultValue> resultValueClass);
 }

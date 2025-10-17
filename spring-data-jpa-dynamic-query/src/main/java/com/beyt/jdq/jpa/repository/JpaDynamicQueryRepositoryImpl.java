@@ -3,10 +3,11 @@ package com.beyt.jdq.jpa.repository;
 import com.beyt.jdq.core.deserializer.IDeserializer;
 import com.beyt.jdq.core.model.Criteria;
 import com.beyt.jdq.core.model.DynamicQuery;
+import com.beyt.jdq.core.repository.BaseDynamicQueryRepository;
+import com.beyt.jdq.core.util.ListConsumer;
 import com.beyt.jdq.jpa.query.DynamicQueryManager;
 import com.beyt.jdq.jpa.query.RepositoryContext;
 import com.beyt.jdq.jpa.query.builder.QueryBuilder;
-import com.beyt.jdq.core.util.ListConsumer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +27,7 @@ import java.util.List;
 @Transactional(
         readOnly = true
 )
-public class JpaDynamicQueryRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRepository<T, ID> implements JpaDynamicQueryRepository<T, ID>, JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+public class JpaDynamicQueryRepositoryImpl<T, ID extends Serializable> extends SimpleJpaRepository<T, ID> implements JpaDynamicQueryRepository<T, ID>, BaseDynamicQueryRepository<T, ID>, JpaRepository<T, ID> {
 
     protected final EntityManager entityManager;
     protected final IDeserializer deserializer;

@@ -2,6 +2,7 @@ package com.beyt.jdq.jpa.repository;
 
 import com.beyt.jdq.core.model.Criteria;
 import com.beyt.jdq.core.model.DynamicQuery;
+import com.beyt.jdq.core.repository.BaseDynamicQueryRepository;
 import com.beyt.jdq.jpa.query.builder.QueryBuilder;
 import com.beyt.jdq.core.util.ListConsumer;
 import org.springframework.data.domain.Page;
@@ -15,7 +16,7 @@ import javax.persistence.Tuple;
 import java.util.List;
 
 @NoRepositoryBean
-public interface JpaDynamicQueryRepository<T, ID> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+public interface JpaDynamicQueryRepository<T, ID> extends BaseDynamicQueryRepository<T, ID>, JpaRepository<T, ID> {
 
     List<T> findAll(List<Criteria> criteriaList);
 
