@@ -1,0 +1,19 @@
+spring:
+  data:
+    mongodb:
+      # Embedded MongoDB configuration for tests
+      # You can use Testcontainers or embedded MongoDB for actual testing
+      uri: mongodb://admin:asd123@localhost:27017/
+      database: jdq-test
+      
+  # Disable JPA since we're using MongoDB
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    
+logging:
+  level:
+    org.springframework.data.mongodb: DEBUG
+    com.beyt.jdq.mongo: DEBUG
+
