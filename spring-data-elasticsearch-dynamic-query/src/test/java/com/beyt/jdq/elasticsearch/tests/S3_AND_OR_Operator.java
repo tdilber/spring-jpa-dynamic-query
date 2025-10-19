@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("estest")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Disabled("TODO: Enable after previous tests pass")
 public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
 
     @Test
@@ -33,7 +33,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.of("name", CriteriaOperator.CONTAIN, "II"),
             Criteria.of("id", CriteriaOperator.GREATER_THAN, 5)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("AND: name contains 'II' AND id > 5: " + courseList);
         
         // Courses 7 (Chemistry II) and 9 (Biology II) have "II" and id > 5
@@ -47,7 +47,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.of("id", CriteriaOperator.EQUAL, 7, 8, 9, 10),
             Criteria.of("active", CriteriaOperator.SPECIFIED, false)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("AND2: name contains 'II' AND id IN (7,8,9,10) AND active is null: " + courseList);
         
         // Only course 7 (Chemistry II) meets all criteria: contains "II", id=7, active=null
@@ -64,7 +64,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.of("id", CriteriaOperator.EQUAL, 1, 2, 3, 4, 5),
             Criteria.of("id", CriteriaOperator.LESS_THAN, 3)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("OR: (name='II' AND id IN (7-10) AND active=null) OR (id IN (1-5) AND id<3): " + courseList);
         
         // Left side: course7 (matches all three conditions)
@@ -83,7 +83,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.OR(),
             Criteria.of("id", CriteriaOperator.LESS_THAN, 3)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("OR2: (name='II' AND id IN (7-10) AND active=null) OR (id IN (1-5)) OR (id<3): " + courseList);
         
         // First group: course7
@@ -103,7 +103,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.of("maxStudentCount", CriteriaOperator.LESS_THAN, 100),
             Criteria.of("active", CriteriaOperator.SPECIFIED, "true")
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Complex AND: maxStudentCount between 30-100 AND active is not null: " + courseList);
         
         // course1 (50, true), course2 (60, true), course9 (54, true)
@@ -117,7 +117,7 @@ public class S3_AND_OR_Operator extends BaseElasticsearchTestInstance {
             Criteria.OR(),
             Criteria.of("id", CriteriaOperator.EQUAL, 10)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Simple OR: id=1 OR id=10: " + courseList);
         
         assertEquals(List.of(course1, course10), courseList);

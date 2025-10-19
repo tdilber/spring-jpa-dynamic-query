@@ -13,6 +13,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("estest")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Disabled("TODO: Enable after previous tests pass")
 public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
 
     @Test
@@ -33,7 +33,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("name", CriteriaOperator.EQUAL, "Calculus I", "Calculus II")
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("EQUAL multiple values ['Calculus I', 'Calculus II']: " + courseList);
         
         assertEquals(List.of(course2, course3), courseList);
@@ -44,7 +44,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("maxStudentCount", CriteriaOperator.EQUAL, 40, 50)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("EQUAL multiple integers [40, 50]: " + courseList);
         
         assertEquals(List.of(course1, course6), courseList);
@@ -55,7 +55,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("name", CriteriaOperator.NOT_EQUAL, "Calculus I", "Calculus II")
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("NOT_EQUAL multiple values ['Calculus I', 'Calculus II']: " + courseList);
         
         assertEquals(
@@ -69,7 +69,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("startDate", CriteriaOperator.NOT_EQUAL, "2013-06-18", "2015-06-18", "2016-06-18")
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("NOT_EQUAL multiple dates: " + courseList);
         
         // Should exclude courses with these dates
@@ -81,7 +81,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("id", CriteriaOperator.EQUAL, 1, 2, 3, 4, 5)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("EQUAL multiple IDs [1,2,3,4,5]: " + courseList);
         
         assertEquals(List.of(course1, course2, course3, course4, course5), courseList);
@@ -92,7 +92,7 @@ public class S2_Multi_Value_Operators extends BaseElasticsearchTestInstance {
         var criteriaList = CriteriaList.of(
             Criteria.of("id", CriteriaOperator.NOT_EQUAL, 1, 2, 3)
         );
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("NOT_EQUAL multiple IDs [1,2,3]: " + courseList);
         
         assertEquals(

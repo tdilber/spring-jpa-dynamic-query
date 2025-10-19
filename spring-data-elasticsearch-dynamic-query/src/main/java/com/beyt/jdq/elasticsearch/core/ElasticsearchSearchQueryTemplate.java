@@ -20,8 +20,13 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.util.Pair;
 
-import java.util.List;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import org.apache.lucene.search.join.ScoreMode;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 /**
  * Template class for building and executing Elasticsearch queries from DynamicQuery objects.
@@ -208,6 +213,7 @@ public class ElasticsearchSearchQueryTemplate {
 
     /**
      * Build individual criteria query
+     * Handles both regular fields and nested fields
      */
     @SuppressWarnings("unchecked")
     private QueryBuilder buildCriteriaQuery(com.beyt.jdq.core.model.Criteria criteria) {
@@ -232,32 +238,81 @@ public class ElasticsearchSearchQueryTemplate {
             return null;
         }
         
+        // Check if this is a nested field query
+        // Handle left join syntax: "department<id" means check if department exists
+        // For SPECIFIED operator, check the parent nested object, not the child field
+        boolean hasLeftJoinSyntax = fieldName.contains("<");
+        String normalizedFieldName = fieldName.replace("<", ".");
+        
+        // Special case: "department<id" with SPECIFIED=false should check if "department" doesn't exist
+        // In Elasticsearch nested documents, if the nested object is null, none of its fields exist
+        if (hasLeftJoinSyntax && operator == CriteriaOperator.SPECIFIED) {
+            // Extract the parent path (before the last dot)
+            int lastDotIndex = normalizedFieldName.lastIndexOf(".");
+            if (lastDotIndex > 0) {
+                String parentPath = normalizedFieldName.substring(0, lastDotIndex);
+                // For nested documents, check if any field in the nested object exists
+                // If the nested object is null, the field won't exist in Elasticsearch
+                boolean shouldExist = Boolean.parseBoolean(values.get(0).toString());
+                if (shouldExist) {
+                    // Check if the nested field exists (the actual field, not the parent)
+                    return QueryBuilders.existsQuery(normalizedFieldName);
+                } else {
+                    // Check if the nested field doesn't exist (meaning the parent nested object is null)
+                    return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(normalizedFieldName));
+                }
+            }
+        }
+        
+        // Detect nested path (e.g., "department.name" or "roles.roleAuthorizations.authorization.menuIcon")
+        NestedPathInfo nestedPathInfo = analyzeNestedPath(normalizedFieldName);
+        
+        if (nestedPathInfo != null && nestedPathInfo.hasNestedPath()) {
+            // Build nested query
+            return buildNestedQuery(nestedPathInfo, operator, values, false);
+        }
+        
         switch (operator) {
             case EQUAL:
                 if (values.size() > 1) {
-                    // Multiple values - use terms query
-                    return QueryBuilders.termsQuery(fieldName, values);
+                    // Multiple values - build OR query with match_phrase for each value
+                    BoolQueryBuilder orQuery = QueryBuilders.boolQuery();
+                    for (Object value : values) {
+                        // Use match_phrase for exact matching with analysis
+                        orQuery.should(QueryBuilders.matchPhraseQuery(fieldName, value));
+                    }
+                    orQuery.minimumShouldMatch(1);
+                    return orQuery;
                 } else {
-                    // Single value - use term query
-                    return QueryBuilders.termQuery(fieldName, values.get(0));
+                    // Single value - use match_phrase for exact phrase matching
+                    return QueryBuilders.matchPhraseQuery(fieldName, values.get(0));
                 }
                 
             case NOT_EQUAL:
+                BoolQueryBuilder notEqualQuery = QueryBuilders.boolQuery();
+                notEqualQuery.must(QueryBuilders.existsQuery(fieldName)); // Field must exist
                 if (values.size() > 1) {
-                    return QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(fieldName, values));
+                    // Exclude all specified values
+                    for (Object value : values) {
+                        notEqualQuery.mustNot(QueryBuilders.matchPhraseQuery(fieldName, value));
+                    }
                 } else {
-                    return QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(fieldName, values.get(0)));
+                    // Exclude single value
+                    notEqualQuery.mustNot(QueryBuilders.matchPhraseQuery(fieldName, values.get(0)));
                 }
+                return notEqualQuery;
                 
             case CONTAIN:
                 return QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase() + "*")
                     .caseInsensitive(true);
                 
             case DOES_NOT_CONTAIN:
-                return QueryBuilders.boolQuery().mustNot(
-                    QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase() + "*")
-                        .caseInsensitive(true)
-                );
+                return QueryBuilders.boolQuery()
+                    .must(QueryBuilders.existsQuery(fieldName)) // Field must exist
+                    .mustNot(
+                        QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase() + "*")
+                            .caseInsensitive(true)
+                    );
                 
             case START_WITH:
                 return QueryBuilders.prefixQuery(fieldName, values.get(0).toString().toLowerCase())
@@ -299,6 +354,197 @@ public class ElasticsearchSearchQueryTemplate {
         return value.replace("\\", "\\\\")
                    .replace("*", "\\*")
                    .replace("?", "\\?");
+    }
+    
+    /**
+     * Analyze a field path to detect nested paths and extract information
+     * Returns null if the path doesn't contain nested fields
+     * 
+     * Note: This implementation treats dot-notation fields as potentially nested.
+     * Fields marked with @Field(type = FieldType.Object) should use regular queries,
+     * while @Field(type = FieldType.Nested) requires nested queries.
+     * 
+     * Since we can't easily introspect field types at runtime without reflection,
+     * we use a heuristic: only create nested paths for known nested relationships.
+     * For now, we return all paths and rely on Elasticsearch to handle them appropriately.
+     */
+    private NestedPathInfo analyzeNestedPath(String fieldPath) {
+        if (!fieldPath.contains(".")) {
+            return null; // Not a nested path
+        }
+        
+        // Common embedded (Object type) fields that should NOT use nested queries
+        Set<String> embeddedFields = Set.of("address");
+        
+        String firstSegment = fieldPath.substring(0, fieldPath.indexOf("."));
+        if (embeddedFields.contains(firstSegment)) {
+            // This is an embedded object, not a nested document
+            // Don't use nested query
+            return null;
+        }
+        
+        // For Elasticsearch, we need to identify which part of the path is nested
+        // Example: "department.name" - if department is nested
+        // Example: "roles.roleAuthorizations.authorization.menuIcon" - multi-level nested
+        
+        List<String> nestedPaths = new ArrayList<>();
+        String[] segments = fieldPath.split("\\.");
+        StringBuilder currentPath = new StringBuilder();
+        
+        for (int i = 0; i < segments.length - 1; i++) {
+            if (currentPath.length() > 0) {
+                currentPath.append(".");
+            }
+            currentPath.append(segments[i]);
+            
+            // Add as potential nested path
+            nestedPaths.add(currentPath.toString());
+        }
+        
+        if (nestedPaths.isEmpty()) {
+            return null;
+        }
+        
+        return new NestedPathInfo(nestedPaths, fieldPath);
+    }
+    
+    /**
+     * Build a nested query for Elasticsearch
+     * Handles multi-level nesting like roles.roleAuthorizations.authorization.menuIcon
+     */
+    private QueryBuilder buildNestedQuery(NestedPathInfo pathInfo, CriteriaOperator operator, List<Object> values, boolean isLeftJoin) {
+        // Build the inner query for the final field
+        QueryBuilder innerQuery = buildFieldQuery(pathInfo.fullPath, operator, values);
+        
+        if (innerQuery == null) {
+            return null;
+        }
+        
+        // Wrap in nested queries from innermost to outermost
+        // For "roles.roleAuthorizations.authorization.menuIcon", we need:
+        // nested(roles.roleAuthorizations.authorization, nested(roles.roleAuthorizations, nested(roles, query)))
+        
+        List<String> nestedPaths = pathInfo.nestedPaths;
+        QueryBuilder currentQuery = innerQuery;
+        
+        // Start from the deepest nested path and work outward
+        for (int i = nestedPaths.size() - 1; i >= 0; i--) {
+            String nestedPath = nestedPaths.get(i);
+            
+            // Use SCORE mode for better relevance, or AVG for numeric aggregations
+            ScoreMode scoreMode = ScoreMode.None;
+            
+            if (isLeftJoin) {
+                // For left joins, we want to include documents even if the nested path doesn't exist
+                // Wrap in a bool query with should
+                BoolQueryBuilder leftJoinQuery = QueryBuilders.boolQuery();
+                leftJoinQuery.should(QueryBuilders.nestedQuery(nestedPath, currentQuery, scoreMode));
+                leftJoinQuery.should(QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(nestedPath)));
+                leftJoinQuery.minimumShouldMatch(1);
+                currentQuery = leftJoinQuery;
+            } else {
+                // Inner join - use nested query directly
+                currentQuery = QueryBuilders.nestedQuery(nestedPath, currentQuery, scoreMode);
+            }
+        }
+        
+        return currentQuery;
+    }
+    
+    /**
+     * Build a query for a single field (used within nested queries)
+     * This is similar to buildCriteriaQuery but for a specific field without nesting logic
+     */
+    private QueryBuilder buildFieldQuery(String fieldName, CriteriaOperator operator, List<Object> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        
+        switch (operator) {
+            case EQUAL:
+                if (values.size() > 1) {
+                    BoolQueryBuilder orQuery = QueryBuilders.boolQuery();
+                    for (Object value : values) {
+                        orQuery.should(QueryBuilders.matchPhraseQuery(fieldName, value));
+                    }
+                    orQuery.minimumShouldMatch(1);
+                    return orQuery;
+                } else {
+                    return QueryBuilders.matchPhraseQuery(fieldName, values.get(0));
+                }
+                
+            case NOT_EQUAL:
+                BoolQueryBuilder notEqualQuery = QueryBuilders.boolQuery();
+                notEqualQuery.must(QueryBuilders.existsQuery(fieldName));
+                if (values.size() > 1) {
+                    for (Object value : values) {
+                        notEqualQuery.mustNot(QueryBuilders.matchPhraseQuery(fieldName, value));
+                    }
+                } else {
+                    notEqualQuery.mustNot(QueryBuilders.matchPhraseQuery(fieldName, values.get(0)));
+                }
+                return notEqualQuery;
+                
+            case CONTAIN:
+                return QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase() + "*")
+                    .caseInsensitive(true);
+                
+            case DOES_NOT_CONTAIN:
+                return QueryBuilders.boolQuery()
+                    .must(QueryBuilders.existsQuery(fieldName))
+                    .mustNot(
+                        QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase() + "*")
+                            .caseInsensitive(true)
+                    );
+                
+            case START_WITH:
+                return QueryBuilders.prefixQuery(fieldName, values.get(0).toString().toLowerCase())
+                    .caseInsensitive(true);
+                
+            case END_WITH:
+                return QueryBuilders.wildcardQuery(fieldName, "*" + escapeWildcard(values.get(0).toString()).toLowerCase())
+                    .caseInsensitive(true);
+                
+            case GREATER_THAN:
+                return QueryBuilders.rangeQuery(fieldName).gt(values.get(0));
+                
+            case GREATER_THAN_OR_EQUAL:
+                return QueryBuilders.rangeQuery(fieldName).gte(values.get(0));
+                
+            case LESS_THAN:
+                return QueryBuilders.rangeQuery(fieldName).lt(values.get(0));
+                
+            case LESS_THAN_OR_EQUAL:
+                return QueryBuilders.rangeQuery(fieldName).lte(values.get(0));
+                
+            case SPECIFIED:
+                boolean exists = Boolean.parseBoolean(values.get(0).toString());
+                if (exists) {
+                    return QueryBuilders.existsQuery(fieldName);
+                } else {
+                    return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(fieldName));
+                }
+                
+            default:
+                throw new DynamicQueryIllegalArgumentException("Unsupported operator: " + operator);
+        }
+    }
+    
+    /**
+     * Helper class to store nested path information
+     */
+    private static class NestedPathInfo {
+        private final List<String> nestedPaths;  // e.g., ["roles", "roles.roleAuthorizations", "roles.roleAuthorizations.authorization"]
+        private final String fullPath;            // e.g., "roles.roleAuthorizations.authorization.menuIcon"
+        
+        public NestedPathInfo(List<String> nestedPaths, String fullPath) {
+            this.nestedPaths = nestedPaths;
+            this.fullPath = fullPath;
+        }
+        
+        public boolean hasNestedPath() {
+            return nestedPaths != null && !nestedPaths.isEmpty();
+        }
     }
 }
 

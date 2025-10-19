@@ -4,6 +4,8 @@ import com.beyt.jdq.elasticsearch.entity.*;
 import com.beyt.jdq.elasticsearch.repository.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -35,6 +37,9 @@ public abstract class BaseElasticsearchJoinTestInstance {
 
     @Autowired
     protected ElasticsearchRoleAuthorizationRepository roleAuthorizationRepository;
+
+    @Autowired
+    protected ElasticsearchOperations elasticsearchOperations;
 
     public static final Calendar INSTANCE = Calendar.getInstance();
 
@@ -169,7 +174,10 @@ public abstract class BaseElasticsearchJoinTestInstance {
     }
 
     @BeforeAll
-    public void init() {
+    public void init() throws InterruptedException {
+        // Recreate indices with correct mappings for nested fields
+        recreateIndices();
+        
         // Clear existing data
         courseRepository.deleteAll();
         studentRepository.deleteAll();
@@ -228,17 +236,17 @@ public abstract class BaseElasticsearchJoinTestInstance {
         studentRepository.save(student10);
         studentRepository.save(student11);
         
-        // Update departments with their students (bidirectional relationship for Elasticsearch)
-        department1.setStudents(List.of(student1));
-        department2.setStudents(List.of(student2));
-        department3.setStudents(List.of(student3));
-        department4.setStudents(List.of(student4));
-        department5.setStudents(List.of(student5));
-        department6.setStudents(List.of(student6));
-        department7.setStudents(List.of(student7));
-        department8.setStudents(List.of(student8));
-        department9.setStudents(List.of(student9));
-        department10.setStudents(List.of(student10));
+        // Update departments with their students (using StudentInfo to avoid circular references)
+        department1.setStudents(List.of(StudentInfo.from(student1)));
+        department2.setStudents(List.of(StudentInfo.from(student2)));
+        department3.setStudents(List.of(StudentInfo.from(student3)));
+        department4.setStudents(List.of(StudentInfo.from(student4)));
+        department5.setStudents(List.of(StudentInfo.from(student5)));
+        department6.setStudents(List.of(StudentInfo.from(student6)));
+        department7.setStudents(List.of(StudentInfo.from(student7)));
+        department8.setStudents(List.of(StudentInfo.from(student8)));
+        department9.setStudents(List.of(StudentInfo.from(student9)));
+        department10.setStudents(List.of(StudentInfo.from(student10)));
         
         departmentRepository.save(department1);
         departmentRepository.save(department2);
@@ -322,6 +330,9 @@ public abstract class BaseElasticsearchJoinTestInstance {
         adminUserRepository.save(adminUser3);
         adminUserRepository.save(adminUser4);
         adminUserRepository.save(adminUser5);
+        
+        // Wait for Elasticsearch to index documents
+        Thread.sleep(1500);
     }
 
     /**
@@ -332,6 +343,49 @@ public abstract class BaseElasticsearchJoinTestInstance {
         cal.set(year, month - 1, day, 0, 0, 0);
         cal.set(Calendar.MILLISECOND, 0);
         return cal.getTime();
+    }
+    
+    /**
+     * Recreate Elasticsearch indices with proper mappings for nested fields.
+     * This ensures that nested fields are correctly mapped before running tests.
+     */
+    private void recreateIndices() {
+        // Student index - has nested Department and Courses
+        recreateIndex(Student.class);
+        
+        // Department index - has nested StudentInfo
+        recreateIndex(Department.class);
+        
+        // Course index - no nested fields but recreate for consistency
+        recreateIndex(Course.class);
+        
+        // AdminUser index - has nested Roles
+        recreateIndex(AdminUser.class);
+        
+        // Role index - has nested RoleAuthorizations
+        recreateIndex(Role.class);
+        
+        // RoleAuthorization index - has nested Authorization
+        recreateIndex(RoleAuthorization.class);
+        
+        // Authorization index - no nested fields
+        recreateIndex(Authorization.class);
+    }
+    
+    /**
+     * Recreate a single index with proper mappings
+     */
+    private void recreateIndex(Class<?> entityClass) {
+        IndexOperations indexOps = elasticsearchOperations.indexOps(entityClass);
+        
+        // Delete index if it exists
+        if (indexOps.exists()) {
+            indexOps.delete();
+        }
+        
+        // Create index with mappings from entity annotations
+        indexOps.create();
+        indexOps.putMapping();
     }
 }
 

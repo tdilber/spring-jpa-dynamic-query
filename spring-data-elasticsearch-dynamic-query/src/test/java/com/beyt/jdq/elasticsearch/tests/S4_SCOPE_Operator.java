@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("estest")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@Disabled("TODO: Enable after previous tests pass")
 public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
 
     /**
@@ -57,7 +57,7 @@ public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
                                 Criteria.of("id", CriteriaOperator.EQUAL, 3)))
         );
         System.out.println("SCOPE: (id=1 OR id=2) AND (id=2 OR id=3)");
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Result: " + courseList);
         
         // Only course2 satisfies both groups: (1 OR 2) AND (2 OR 3) = 2
@@ -82,14 +82,12 @@ public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
                                                 Criteria.of("id", CriteriaOperator.NOT_EQUAL, 3)))))
         );
         System.out.println("SCOPE INSIDE SCOPE: ((id IN (1,2,3) AND id!=2) OR (id=2 AND id!=3))");
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Result: " + courseList);
         
         // First part: id IN (1,2,3) AND id!=2 => courses 1, 3
         // Second part: id=2 AND id!=3 => course 2
         // Combined with OR: courses 1, 2, 3
-        // Sort by ID to ensure consistent ordering
-        courseList.sort((a, b) -> Long.compare(a.getId(), b.getId()));
         assertEquals(List.of(course1, course2, course3), courseList);
     }
 
@@ -108,7 +106,7 @@ public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
                 Criteria.of("maxStudentCount", CriteriaOperator.GREATER_THAN, 50)
         );
         System.out.println("SCOPE WITH STRINGS: (name CONTAINS 'I' OR name CONTAINS 'II') AND maxStudentCount > 50");
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Result: " + courseList);
         
         // Names with "I" or "II", AND maxStudentCount > 50:
@@ -138,7 +136,7 @@ public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
                                 Criteria.of("maxStudentCount", CriteriaOperator.LESS_THAN, 100)))
         );
         System.out.println("MULTIPLE SCOPES: (id IN (1,2,3)) AND (active IS NOT NULL OR maxStudentCount < 100)");
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Result: " + courseList);
         
         // id IN (1,2,3): courses 1, 2, 3
@@ -163,7 +161,7 @@ public class S4_SCOPE_Operator extends BaseElasticsearchTestInstance {
                                 Criteria.of("active", CriteriaOperator.EQUAL, true)))
         );
         System.out.println("DEEPLY NESTED: ((id < 3 OR id > 8) AND active = true)");
-        List<Course> courseList = courseRepository.findAll(criteriaList);
+        List<Course> courseList = courseRepository.findAll(criteriaList).stream().sorted(Comparator.comparing(Course::getId)).toList();
         System.out.println("Result: " + courseList);
         
         // (id < 3 OR id > 8): courses 1, 2, 9, 10

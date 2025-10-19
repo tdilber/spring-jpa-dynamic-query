@@ -24,8 +24,9 @@ public class Department {
     @Field(type = FieldType.Long)
     private List<Long> studentIds;
     
+    // Store simplified student info to avoid circular references
     @Field(type = FieldType.Nested)
-    private List<Student> students;
+    private List<StudentInfo> students;
 
     public Department() {
     }
@@ -35,10 +36,13 @@ public class Department {
         this.name = name;
     }
 
-    public Department(Long id, String name, List<Student> students) {
+    public Department(Long id, String name, List<StudentInfo> students) {
         this.id = id;
         this.name = name;
         this.students = students;
+        if (students != null) {
+            this.studentIds = students.stream().map(StudentInfo::getId).collect(java.util.stream.Collectors.toList());
+        }
     }
 
     public Long getId() {
@@ -57,20 +61,23 @@ public class Department {
         this.name = name;
     }
 
-    public List<Student> getStudents() {
-        return students;
-    }
-
-    public void setStudents(List<Student> students) {
-        this.students = students;
-    }
-
     public List<Long> getStudentIds() {
         return studentIds;
     }
 
     public void setStudentIds(List<Long> studentIds) {
         this.studentIds = studentIds;
+    }
+
+    public List<StudentInfo> getStudents() {
+        return students;
+    }
+
+    public void setStudents(List<StudentInfo> students) {
+        this.students = students;
+        if (students != null) {
+            this.studentIds = students.stream().map(StudentInfo::getId).collect(java.util.stream.Collectors.toList());
+        }
     }
 
     @Override

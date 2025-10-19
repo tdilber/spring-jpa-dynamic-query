@@ -21,23 +21,24 @@ public class Student {
     @Field(type = FieldType.Text)
     private String name;
     
-////     Embedded address - stored as part of student document
-//    @Field(type = FieldType.Object)
-//    private Address address;
-//
+    // Embedded address - stored as part of student document
+    @Field(type = FieldType.Object)
+    private Address address;
+
     @Field(type = FieldType.Long)
     private Long departmentId;
     
-//    // Reference to department
-//    @Field(type = FieldType.Nested)
-//    private Department department;
-//
-//    @Field(type = FieldType.Long)
-//    private List<Long> courseIds;
-//
-//    // Reference to courses (many-to-many)
-//    @Field(type = FieldType.Nested)
-//    private List<Course> courses;
+    // Reference to department (stored as nested document)
+    // Department in Student does NOT contain students to avoid circular reference
+    @Field(type = FieldType.Nested)
+    private Department department;
+
+    @Field(type = FieldType.Long)
+    private List<Long> courseIds;
+
+    // Reference to courses (many-to-many, stored as nested documents)
+    @Field(type = FieldType.Nested)
+    private List<Course> courses;
 
     public Student() {
     }
@@ -50,12 +51,15 @@ public class Student {
     public Student(Long id, String name, Address address, Department department, List<Course> courses) {
         this.id = id;
         this.name = name;
-//        this.address = address;
-//        this.department = department;
+        this.address = address;
+        this.department = department;
         if (department != null) {
             this.departmentId = department.getId();
         }
-//        this.courses = courses;
+        this.courses = courses;
+        if (courses != null) {
+            this.courseIds = courses.stream().map(Course::getId).collect(java.util.stream.Collectors.toList());
+        }
     }
 
     public static Student of(String name) {
@@ -80,32 +84,35 @@ public class Student {
         this.name = name;
     }
 
-//    public Address getAddress() {
-//        return address;
-//    }
-//
-//    public void setAddress(Address address) {
-//        this.address = address;
-//    }
-//
-//    public Department getDepartment() {
-//        return department;
-//    }
-//
-//    public void setDepartment(Department department) {
-//        this.department = department;
-//        if (department != null) {
-//            this.departmentId = department.getId();
-//        }
-//    }
+    public Address getAddress() {
+        return address;
+    }
 
-//    public List<Course> getCourses() {
-//        return courses;
-//    }
-//
-//    public void setCourses(List<Course> courses) {
-//        this.courses = courses;
-//    }
+    public void setAddress(Address address) {
+        this.address = address;
+    }
+
+    public Department getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+        if (department != null) {
+            this.departmentId = department.getId();
+        }
+    }
+
+    public List<Course> getCourses() {
+        return courses;
+    }
+
+    public void setCourses(List<Course> courses) {
+        this.courses = courses;
+        if (courses != null) {
+            this.courseIds = courses.stream().map(Course::getId).collect(java.util.stream.Collectors.toList());
+        }
+    }
 
     public Long getDepartmentId() {
         return departmentId;
@@ -115,13 +122,13 @@ public class Student {
         this.departmentId = departmentId;
     }
 
-//    public List<Long> getCourseIds() {
-//        return courseIds;
-//    }
-//
-//    public void setCourseIds(List<Long> courseIds) {
-//        this.courseIds = courseIds;
-//    }
+    public List<Long> getCourseIds() {
+        return courseIds;
+    }
+
+    public void setCourseIds(List<Long> courseIds) {
+        this.courseIds = courseIds;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -141,9 +148,9 @@ public class Student {
         return "Student{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-//                ", address=" + address +
-//                ", department=" + department +
-//                ", courses=" + courses +
+                ", address=" + address +
+                ", department=" + (department != null ? department.getName() : null) +
+                ", courses=" + (courses != null ? courses.size() : 0) +
                 '}';
     }
 }
