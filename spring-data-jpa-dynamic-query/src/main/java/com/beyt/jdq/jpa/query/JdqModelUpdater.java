@@ -4,12 +4,12 @@ import com.beyt.jdq.core.model.annotation.JdqField;
 import com.beyt.jdq.core.model.annotation.JdqModel;
 import com.beyt.jdq.core.model.annotation.JdqSubModel;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Id;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaUpdate;
-import javax.persistence.criteria.Root;
-import javax.persistence.metamodel.EntityType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Id;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaUpdate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.metamodel.EntityType;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
@@ -229,7 +229,7 @@ public class JdqModelUpdater {
             }
             
             // Verify it's an entity
-            if (currentClass.getAnnotation(javax.persistence.Entity.class) != null) {
+            if (currentClass.getAnnotation(jakarta.persistence.Entity.class) != null) {
                 return currentClass;
             }
         } catch (Exception e) {
