@@ -15,6 +15,8 @@ The query creation capabilities include 9 different field operators, AND-OR conj
 and MongoDB) single or multi JOIN features. The SELECT, DISTINCT, ORDER BY clauses in the query are also supported with 
 Joined Column. In addition, all query results can be returned as both List<?> and Page<?>. After SELECT clause, PROJECTION 
 support is also available. This PROJECTION works with ignore missing fields rules for more flexibility. In Elasticsearch, 
+I didn't use JOIN because AI don't recommend JOIN in Elasticsearch architecture, so actually **still all Join operations are 
+working for nested objects on Elasticsearch**.
 
 You don't need to write any lines of code to create these queries, all operations including all JOIN operations are done
 dynamically at runtime. It is sufficient to create just one Repository interface. The objects required to build and call 
