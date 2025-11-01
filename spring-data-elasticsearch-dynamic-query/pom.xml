@@ -12,8 +12,8 @@
     </parent>
 
     <groupId>io.github.tdilber</groupId>
-    <artifactId>spring-data-elasticsearch-dynamic-query</artifactId>
-    <version>0.8.0-SNAPSHOT</version>
+    <artifactId>spring-data-elasticsearch-dynamic-query-sb2</artifactId>
+    <version>0.8.0</version>
     <packaging>jar</packaging>
     <name>Spring Data Elasticsearch Dynamic Query</name>
     <description>Spring Data Elasticsearch Dynamic Query (JDQ) Project</description>
@@ -48,8 +48,8 @@
     <dependencies>
         <dependency>
             <groupId>io.github.tdilber</groupId>
-            <artifactId>spring-data-dynamic-query-core</artifactId>
-            <version>0.8.0-SNAPSHOT</version>
+            <artifactId>spring-data-dynamic-query-core-sb2</artifactId>
+            <version>0.8.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>
