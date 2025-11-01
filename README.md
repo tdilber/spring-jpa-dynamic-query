@@ -113,7 +113,7 @@ public interface BaseDynamicQueryRepository<T, ID> {
 <dependency>
     <groupId>io.github.tdilber</groupId>
     <artifactId>spring-boot-starter-jpa-dynamic-query</artifactId>
-    <version>0.4.0</version>
+    <version>0.8.0</version>
 </dependency>
 ```
 
@@ -157,6 +157,16 @@ public class SpringJpaDynamicQueryDemoApplication {
 
 #### 1- Setting up the project with Maven
 
+**for Spring Boot 3.*:**
+```maven
+<dependency>
+    <groupId>io.github.tdilber</groupId>
+    <artifactId>spring-data-mongodb-dynamic-query</artifactId>
+    <version>0.8.0</version>
+</dependency>
+```
+
+**for Spring Boot 2.*:**
 ```maven
 <dependency>
     <groupId>io.github.tdilber</groupId>
@@ -194,6 +204,16 @@ public class SpringJpaDynamicQueryDemoApplication {
 
 #### 1- Setting up the project with Maven
 
+**for Spring Boot 3.*:**
+```maven
+<dependency>
+    <groupId>io.github.tdilber</groupId>
+    <artifactId>spring-data-elasticsearch-dynamic-query</artifactId>
+    <version>0.8.0</version>
+</dependency>
+```
+
+**for Spring Boot 2.*:**
 ```maven
 <dependency>
     <groupId>io.github.tdilber</groupId>
