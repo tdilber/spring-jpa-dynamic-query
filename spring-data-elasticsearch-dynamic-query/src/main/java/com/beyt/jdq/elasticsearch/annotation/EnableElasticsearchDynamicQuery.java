@@ -16,20 +16,20 @@ import java.lang.annotation.Target;
  * Annotation to enable Dynamic Query support for Elasticsearch repositories.
  * 
  * Usage:
- * <pre>
+ * <pre>{@code
  * @Configuration
  * @EnableElasticsearchDynamicQuery
  * public class ElasticsearchConfig {
  *     // Your Elasticsearch configuration
  * }
- * </pre>
+ * }</pre>
  * 
  * Then your repositories can extend ElasticsearchDynamicQueryRepository:
- * <pre>
- * public interface UserRepository extends ElasticsearchDynamicQueryRepository&lt;User, String&gt; {
+ * <pre>{@code
+ * public interface UserRepository extends ElasticsearchDynamicQueryRepository<User, String> {
  *     // Your custom methods
  * }
- * </pre>
+ * }</pre>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
