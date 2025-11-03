@@ -148,7 +148,7 @@ public interface BaseDynamicQueryRepository<T, ID> {
 ```maven
 <dependency>
     <groupId>io.github.tdilber</groupId>
-    <artifactId>spring-boot-starter-jpa-dynamic-query</artifactId>
+    <artifactId>spring-data-jpa-dynamic-query</artifactId>
     <version>0.8.0</version>
 </dependency>
 ```
