@@ -49,7 +49,7 @@
         <dependency>
             <groupId>io.github.tdilber</groupId>
             <artifactId>spring-data-dynamic-query-core-sb2</artifactId>
-            <version>0.8.0</version>
+            <version>0.8.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.data</groupId>

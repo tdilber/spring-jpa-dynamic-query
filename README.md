@@ -148,7 +148,7 @@ public interface BaseDynamicQueryRepository<T, ID> {
 <dependency>
     <groupId>io.github.tdilber</groupId>
     <artifactId>spring-data-jpa-dynamic-query-sb2</artifactId>
-    <version>0.8.0</version>
+    <version>0.8.1</version>
 </dependency>
 ```
 
