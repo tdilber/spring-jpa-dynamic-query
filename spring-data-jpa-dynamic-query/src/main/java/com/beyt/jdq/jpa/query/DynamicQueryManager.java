@@ -10,6 +10,7 @@ import com.beyt.jdq.core.model.DynamicQuery;
 import com.beyt.jdq.core.model.enums.CriteriaOperator;
 import com.beyt.jdq.core.model.exception.DynamicQueryIllegalArgumentException;
 import com.beyt.jdq.jpa.query.rule.specification.*;
+import com.beyt.jdq.jpa.query.rule.aggregate.*;
 import com.beyt.jdq.jpa.repository.JpaDynamicQueryRepositoryImpl;
 import com.beyt.jdq.core.util.field.FieldUtil;
 import org.apache.commons.collections4.IterableUtils;
@@ -230,7 +231,26 @@ public class DynamicQueryManager {
             List<Selection<?>> selectionList = new ArrayList<>();
 
             dynamicQuery.getSelect().forEach(selectField -> {
-                selectionList.add(specification.createLocalFrom(root, selectField.getFirst()).get(QueryHelper.getFieldName(selectField.getFirst())).alias(selectField.getSecond()));
+                String fieldPath = selectField.getFirst();
+                String alias = selectField.getSecond();
+                
+                // Check if this is an aggregate expression
+                AggregateType aggregateType = AggregateType.fromFieldPath(fieldPath);
+                
+                if (aggregateType != null) {
+                    // Extract actual field path without aggregate prefix
+                    String actualFieldPath = AggregateType.extractFieldPath(fieldPath);
+                    Expression<?> fieldExpression = specification.createLocalFrom(root, actualFieldPath).get(QueryHelper.getFieldName(actualFieldPath));
+                    
+                    // Apply aggregate function
+                    IAggregateExpression aggregateExpression = AggregateExpressionFactory.getExpression(aggregateType);
+                    Expression<?> aggregatedExpression = aggregateExpression.generate(builder, fieldExpression);
+                    
+                    selectionList.add(aggregatedExpression.alias(alias));
+                } else {
+                    // Normal select without aggregation
+                    selectionList.add(specification.createLocalFrom(root, fieldPath).get(QueryHelper.getFieldName(fieldPath)).alias(alias));
+                }
             });
             query.multiselect(selectionList);
         } else if (!resultTypeClass.equals(entityClass)) {
@@ -252,6 +272,45 @@ public class DynamicQueryManager {
                 orderList.add(orderPair.getSecond() == com.beyt.jdq.core.model.enums.Order.DESC ? builder.desc(specification.createLocalFrom(root, orderPair.getFirst()).get(QueryHelper.getFieldName(orderPair.getFirst()))) : builder.asc(specification.createLocalFrom(root, orderPair.getFirst()).get(QueryHelper.getFieldName(orderPair.getFirst()))));
             });
             query.orderBy(orderList);
+        }
+
+        if (!CollectionUtils.isEmpty(dynamicQuery.getGroupBy())) {
+            List<Expression<?>> groupByList = new ArrayList<>();
+            dynamicQuery.getGroupBy().forEach(groupByField -> {
+                groupByList.add(specification.createLocalFrom(root, groupByField).get(QueryHelper.getFieldName(groupByField)));
+            });
+            query.groupBy(groupByList);
+        }
+
+        if (!CollectionUtils.isEmpty(dynamicQuery.getHaving())) {
+            // Process HAVING clause with support for aggregate expressions
+            List<Predicate> havingPredicates = new ArrayList<>();
+            
+            for (Criteria havingCriteria : dynamicQuery.getHaving()) {
+                String fieldPath = havingCriteria.getKey();
+                AggregateType aggregateType = AggregateType.fromFieldPath(fieldPath);
+                
+                if (aggregateType != null) {
+                    // Extract actual field path without aggregate prefix
+                    String actualFieldPath = AggregateType.extractFieldPath(fieldPath);
+                    Expression<?> fieldExpression = specification.createLocalFrom(root, actualFieldPath).get(QueryHelper.getFieldName(actualFieldPath));
+                    
+                    // Apply aggregate function
+                    IAggregateExpression aggregateExpression = AggregateExpressionFactory.getExpression(aggregateType);
+                    Expression<?> aggregatedExpression = aggregateExpression.generate(builder, fieldExpression);
+                    
+                    // Apply the comparison operator on aggregated expression
+                    havingPredicates.add(generatePredicateForAggregateExpression(builder, aggregatedExpression, havingCriteria));
+                } else {
+                    // Normal having without aggregation - use standard specification
+                    DynamicSpecification<Entity> havingSpecification = new DynamicSpecification<>(List.of(havingCriteria), context);
+                    havingPredicates.add(havingSpecification.toPredicate(root, query, builder));
+                }
+            }
+            
+            if (!havingPredicates.isEmpty()) {
+                query.having(builder.and(havingPredicates.toArray(new Predicate[0])));
+            }
         }
 
         TypedQuery<ResultType> typedQuery = entityManager.createQuery(query);
@@ -461,5 +520,42 @@ public class DynamicQueryManager {
         }
 
         return result;
+    }
+
+    /**
+     * Generate predicate for aggregate expression in HAVING clause
+     * @param builder CriteriaBuilder
+     * @param aggregatedExpression The aggregated expression (e.g., COUNT, SUM, etc.)
+     * @param criteria Criteria containing operator and values
+     * @return Predicate for the aggregate expression
+     */
+    @SuppressWarnings("unchecked")
+    private static Predicate generatePredicateForAggregateExpression(CriteriaBuilder builder, Expression<?> aggregatedExpression, Criteria criteria) {
+        CriteriaOperator operator = criteria.getOperation();
+        List<Object> values = criteria.getValues();
+        
+        if (CollectionUtils.isEmpty(values)) {
+            throw new DynamicQueryIllegalArgumentException("Aggregate HAVING criteria must have at least one value");
+        }
+        
+        Object value = values.get(0);
+        Expression<? extends Comparable> comparableExpression = (Expression<? extends Comparable>) aggregatedExpression;
+        
+        switch (operator) {
+            case EQUAL:
+                return builder.equal(aggregatedExpression, value);
+            case NOT_EQUAL:
+                return builder.notEqual(aggregatedExpression, value);
+            case GREATER_THAN:
+                return builder.greaterThan(comparableExpression, (Comparable) value);
+            case GREATER_THAN_OR_EQUAL:
+                return builder.greaterThanOrEqualTo(comparableExpression, (Comparable) value);
+            case LESS_THAN:
+                return builder.lessThan(comparableExpression, (Comparable) value);
+            case LESS_THAN_OR_EQUAL:
+                return builder.lessThanOrEqualTo(comparableExpression, (Comparable) value);
+            default:
+                throw new DynamicQueryIllegalArgumentException("Unsupported operator for aggregate HAVING: " + operator);
+        }
     }
 }

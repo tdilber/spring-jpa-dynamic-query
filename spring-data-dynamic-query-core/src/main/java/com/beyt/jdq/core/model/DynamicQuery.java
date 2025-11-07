@@ -18,6 +18,8 @@ public class DynamicQuery implements Serializable {
     protected List<Pair<String, String>> select = new ArrayList<>();
     protected List<Criteria> where = new CriteriaList();
     protected List<Pair<String, Order>> orderBy = new ArrayList<>();
+    protected List<String> groupBy = new ArrayList<>();
+    protected List<Criteria> having = new ArrayList<>();
 
 
     public static DynamicQuery of(List<Criteria> where) {
@@ -72,5 +74,21 @@ public class DynamicQuery implements Serializable {
 
     public void setPageNumber(Integer pageNumber) {
         this.pageNumber = pageNumber;
+    }
+
+    public List<String> getGroupBy() {
+        return groupBy;
+    }
+
+    public void setGroupBy(List<String> groupBy) {
+        this.groupBy = groupBy;
+    }
+
+    public List<Criteria> getHaving() {
+        return having;
+    }
+
+    public void setHaving(List<Criteria> having) {
+        this.having = having;
     }
 }
